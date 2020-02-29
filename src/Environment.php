@@ -21,11 +21,19 @@ class Environment
      * @var array list of valid modes
      */
     protected $validModes = [
-        'dev',
-        'test',
-        'stage',
-        'prod',
+        'dev' => 'dev',
+        'development' => 'dev',
+        'test' => 'test',
+        'testing' => 'test',
+        'stage' => 'stage',
+        'staging' => 'stage',
+        'prod' => 'prod',
+        'production' => 'prod',
     ];
+    /**
+     * @var string the prefix of review env
+     */
+    protected $reviewPrefix = 'review/';
     /**
      * @var array configuration directory(s)
      */
@@ -34,6 +42,10 @@ class Environment
      * @var string selected environment mode
      */
     protected $mode;
+    /**
+     * @var string sub mode of review env
+     */
+    protected $reviewMode;
     /**
      * @var string path to Yii.php
      */
@@ -114,11 +126,14 @@ class Environment
 
         // Check if mode is valid.
         $mode = strtolower($mode);
-        if (!in_array($mode, $this->validModes, true)) {
+        if (key_exists($mode, $this->validModes)) {
+            $this->mode = $this->validModes[$mode];
+        } elseif (strncmp($this->reviewPrefix, $mode, strlen($this->reviewPrefix)) == 0) {
+            list($this->mode, $this->reviewMode) = explode('/', $mode, 2);
+            $this->reviewMode = str_replace(['\\', '/', '-', ' '], '_', $this->reviewMode);
+        } else {
             throw new \Exception('Invalid environment mode supplied or selected: ' . $mode);
         }
-
-        $this->mode = $mode;
     }
 
     /**
@@ -149,6 +164,17 @@ class Environment
             $configSpecific = require($fileSpecificConfig);
             if (is_array($configSpecific)) {
                 $configMerged = static::merge($configMerged, $configSpecific);
+            }
+
+            if (!empty($this->reviewMode)) {
+                // Merge review mode specific config.
+                $fileReviewConfig = $configDir . 'mode_' . $this->mode . '_' . $this->reviewMode . '.php';
+                if (file_exists($fileReviewConfig)) {
+                    $configReview = require($fileReviewConfig);
+                    if (is_array($configReview)) {
+                        $configMerged = static::merge($configMerged, $configReview);
+                    }
+                }
             }
 
             // If one exists, merge local config.

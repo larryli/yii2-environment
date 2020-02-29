@@ -78,6 +78,12 @@ Use yii
 export YII_ENV='dev' && ./yii
 ```
 
+Supports `review/$CI_COMMIT_REF_NAME` environment name for gitlab-ci
+
+```
+export YII_ENV=$CI_ENVIRONMENT_NAME && ./yii
+```
+
 ## Documentation
 
 See `examples/`.
